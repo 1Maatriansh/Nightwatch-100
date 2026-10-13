@@ -1,0 +1,699 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Nightwatch 100</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a floating pill nav over one scrolling page; hero with signal glow and skyline, then mission + meter, map + timetable, and a branching chapter tree. Single dark look by choice. */
+:root{
+  color-scheme:dark;
+  --bg:#08090c; --bg2:#0d0f14; --surface:#12151c; --surface2:#181c25;
+  --line:#252a36; --line2:#323949;
+  --fg:#eceef3; --muted:#8e94a6; --dim:#5d6377;
+  --accent:#f4c430; --accent-ink:#17130a; --accent-soft:rgba(244,196,48,.12);
+  --good:#46d39a; --warn:#ffb347; --bad:#ff5d6c;
+  --maths:#ff8f5a; --phys:#62a8ff; --chem:#b58cff;
+  --font-d:'Bebas Neue','Oswald','Arial Narrow',Impact,sans-serif;
+  --font-b:'Barlow',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --font-m:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  background:var(--bg);color:var(--fg);font-family:var(--font-b);font-size:15px;line-height:1.5;
+  padding-inline:clamp(16px,3vw,32px);padding-block:12px 140px;
+  background-image:radial-gradient(1100px 520px at 88% -8%,rgba(244,196,48,.07),transparent 60%),radial-gradient(900px 520px at -10% 35%,rgba(98,168,255,.05),transparent 60%);
+  background-repeat:no-repeat;
+}
+.wrap{max-width:1180px;margin-inline:auto;display:flex;flex-direction:column;gap:22px}
+h1,h2,h3,p{margin:0}
+button{font:inherit;color:inherit}
+.mono{font-family:var(--font-m)}
+.eyebrow{font-family:var(--font-m);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.d{font-family:var(--font-d);font-weight:400;letter-spacing:.03em;text-transform:uppercase}
+
+/* nav */
+.top{position:sticky;top:calc(env(safe-area-inset-top,0px) + 8px);z-index:20;display:flex;align-items:center;gap:12px;
+  background:rgba(13,15,20,.86);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  border:1px solid var(--line);border-radius:999px;padding:8px 12px 8px 18px;max-width:1180px;margin-inline:auto;width:100%}
+.brand{display:flex;align-items:center;gap:10px;flex:none}
+.brand svg{width:34px;height:18px;color:var(--accent)}
+.brand b{font-family:var(--font-d);font-weight:400;font-size:22px;letter-spacing:.08em}
+.tabs{display:flex;gap:4px;overflow-x:auto;min-width:0;flex:1;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:none;border:0;background:transparent;color:var(--muted);padding:8px 16px;border-radius:999px;cursor:pointer;font-weight:600;font-size:14px;white-space:nowrap;transition:background .2s,color .2s}
+.tab:hover{color:var(--fg)}
+.tab[aria-selected="true"]{background:var(--accent);color:var(--accent-ink)}
+.sync{flex:none;font-family:var(--font-m);font-size:10.5px;color:var(--muted);display:flex;align-items:center;gap:7px;padding-right:6px}
+.sync i{width:7px;height:7px;border-radius:50%;background:var(--dim)}
+.sync.ok i{background:var(--good);box-shadow:0 0 8px var(--good)}
+.sync.err i{background:var(--bad)}
+@media (max-width:760px){.brand b,.sync span{display:none}.top{padding-left:14px}}
+
+/* hero */
+.hero{position:relative;overflow:hidden;border-radius:30px;border:1px solid var(--line);background:linear-gradient(180deg,#10131a 0%,#0a0b10 100%);padding:clamp(24px,4vw,44px);min-height:300px;isolation:isolate}
+.hero-in{position:relative;z-index:2;max-width:620px;display:flex;flex-direction:column;gap:14px}
+.hero h1{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+.hero .big{font-family:var(--font-d);font-size:clamp(76px,13vw,150px);line-height:.86;letter-spacing:.02em}
+.hero .of{font-family:var(--font-d);font-size:clamp(28px,4vw,44px);color:var(--dim)}
+.hero .sub{color:var(--muted);max-width:46ch}
+.prog{height:10px;border-radius:999px;background:var(--surface2);overflow:hidden;border:1px solid var(--line)}
+.prog i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,#c79a0f,var(--accent));transition:width .6s ease}
+.hero-meta{display:flex;gap:10px;flex-wrap:wrap}
+.pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;border:1px solid var(--line2);padding:4px 12px;font-family:var(--font-m);font-size:11.5px;color:var(--muted);background:rgba(8,9,12,.5)}
+.pill.hot{color:var(--accent);border-color:rgba(244,196,48,.45)}
+.signal{position:absolute;right:clamp(-30px,4vw,60px);top:18px;width:clamp(150px,26vw,300px);aspect-ratio:1.35;z-index:1;border-radius:50%;
+  background:radial-gradient(ellipse at center,rgba(244,196,48,.95) 0%,rgba(244,196,48,.55) 38%,rgba(244,196,48,.0) 70%);display:grid;place-items:center;animation:pulse 5s ease-in-out infinite}
+.signal svg{width:46%;color:#08090c;transform:translateY(2px)}
+.beam{position:absolute;right:calc(clamp(-30px,4vw,60px) + 6%);top:90px;width:60%;height:90%;z-index:0;background:linear-gradient(200deg,rgba(244,196,48,.16),transparent 70%);clip-path:polygon(78% 0,100% 6%,0 100%,0 40%);opacity:.8}
+.skyline{position:absolute;left:0;right:0;bottom:0;width:100%;height:110px;z-index:1;opacity:.95}
+@keyframes pulse{0%,100%{opacity:.82}50%{opacity:1}}
+@media (max-width:640px){.signal{opacity:.55;top:10px}.beam{display:none}}
+
+/* cards */
+.grid2{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:22px}
+.grid2b{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px}
+@media (max-width:900px){.grid2,.grid2b{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:26px;padding:clamp(18px,2.4vw,28px);display:flex;flex-direction:column;gap:16px;min-width:0}
+.card.mission{border-color:rgba(244,196,48,.4);box-shadow:0 0 0 1px rgba(244,196,48,.06),0 18px 50px -24px rgba(244,196,48,.35)}
+.card h2{font-family:var(--font-d);font-weight:400;font-size:28px;letter-spacing:.04em;text-transform:uppercase;line-height:1}
+.chip{display:inline-flex;align-items:center;border-radius:999px;padding:3px 11px;font-size:12px;font-weight:600;border:1px solid var(--line2);color:var(--muted);white-space:nowrap}
+.chip.sM{color:var(--maths);border-color:rgba(255,143,90,.4)}
+.chip.sP{color:var(--phys);border-color:rgba(98,168,255,.4)}
+.chip.sC{color:var(--chem);border-color:rgba(181,140,255,.4)}
+.chip.high{color:var(--accent);border-color:rgba(244,196,48,.45)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.sM{--sc:var(--maths)}.sP{--sc:var(--phys)}.sC{--sc:var(--chem)}
+.mname{font-family:var(--font-d);font-size:clamp(34px,5vw,52px);line-height:.95;letter-spacing:.02em;text-transform:uppercase;text-wrap:balance}
+.note{color:var(--muted);font-size:14px}
+.banner{border-radius:16px;padding:12px 16px;background:var(--accent-soft);border:1px solid rgba(244,196,48,.3);color:var(--accent);font-size:14px;font-weight:600}
+.banner.bad{background:rgba(255,93,108,.1);border-color:rgba(255,93,108,.35);color:var(--bad)}
+
+/* stepper + checklist */
+.stepper{display:flex;gap:8px;flex-wrap:wrap}
+.step{border:1px solid var(--line2);background:var(--bg2);color:var(--muted);border-radius:999px;padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer;transition:all .18s}
+.step:hover{border-color:var(--muted);color:var(--fg)}
+.step.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.step.on.l3{background:var(--good);border-color:var(--good)}
+.checks{display:flex;flex-direction:column;gap:8px}
+.check{display:flex;align-items:center;gap:14px;width:100%;text-align:left;border:1px solid var(--line);background:var(--bg2);border-radius:16px;padding:12px 14px;cursor:pointer;transition:border-color .18s}
+.check:hover{border-color:var(--line2)}
+.check .box{flex:none;width:24px;height:24px;border-radius:8px;border:2px solid var(--line2);display:grid;place-items:center;color:transparent;font-size:14px;font-weight:700;transition:all .18s}
+.check.on{border-color:rgba(70,211,154,.4)}
+.check.on .box{background:var(--good);border-color:var(--good);color:#06150e}
+.check.on span.t{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--dim)}
+.check small{display:block;color:var(--dim);font-size:12px}
+
+/* meter */
+.gauge{position:relative;height:14px;border-radius:999px;background:linear-gradient(90deg,var(--good),var(--warn) 55%,var(--bad));margin-top:6px}
+.gauge b{position:absolute;top:-6px;width:6px;height:26px;border-radius:4px;background:var(--fg);transform:translateX(-3px);box-shadow:0 0 0 3px var(--surface);transition:left .6s ease}
+.score{font-family:var(--font-d);font-size:68px;line-height:.9}
+.parts{display:flex;flex-direction:column;gap:8px}
+.part{display:grid;grid-template-columns:90px 1fr 38px;gap:10px;align-items:center;font-size:13px;color:var(--muted)}
+.part i{display:block;height:6px;border-radius:99px;background:var(--surface2);overflow:hidden}
+.part i b{display:block;height:100%;background:var(--warn);border-radius:99px}
+.part em{font-style:normal;font-family:var(--font-m);font-size:12px;text-align:right;color:var(--fg)}
+
+/* tiles */
+.tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+@media (max-width:760px){.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:22px;padding:18px 20px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.tile .v{font-family:var(--font-d);font-size:46px;line-height:1;letter-spacing:.02em}
+.tile .v small{font-size:20px;color:var(--dim)}
+.tile .k{font-family:var(--font-m);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.tile .s{font-size:12.5px;color:var(--dim)}
+
+/* map */
+.map{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:6px}
+.cell{aspect-ratio:1;border-radius:10px;border:1px solid var(--line);background:var(--surface2);color:var(--dim);font-family:var(--font-m);font-size:10px;display:grid;place-items:center;padding:0;cursor:default;box-shadow:inset 0 -3px 0 var(--sc,var(--line));transition:transform .15s}
+button.cell{cursor:pointer}
+button.cell:hover{transform:translateY(-2px);color:var(--fg)}
+.cell.ok{background:rgba(70,211,154,.18);border-color:rgba(70,211,154,.55);color:var(--good)}
+.cell.miss{background:rgba(255,93,108,.12);border-color:rgba(255,93,108,.45);color:var(--bad)}
+.cell.buf,.cell.mock{border-style:dashed;--sc:var(--line2)}
+.cell.mock{color:var(--muted)}
+.cell.now{border-color:var(--accent);color:var(--accent);box-shadow:0 0 0 2px rgba(244,196,48,.35),inset 0 -3px 0 var(--sc,var(--line))}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:11px;height:11px;border-radius:4px;border:1px solid var(--line2);display:inline-block}
+
+/* timetable */
+.tt{display:flex;flex-direction:column;gap:2px}
+.tt div{display:grid;grid-template-columns:96px 1fr;gap:12px;padding:10px 0;border-bottom:1px dashed var(--line);align-items:baseline}
+.tt div:last-child{border-bottom:0}
+.tt .tm{font-family:var(--font-m);font-size:12px;color:var(--muted)}
+.tt .hl .tm{color:var(--accent)}
+.tt b{font-weight:600}
+.tt small{display:block;color:var(--dim);font-size:12.5px}
+
+/* tree */
+.toolbar{display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+.seg{display:inline-flex;border:1px solid var(--line2);border-radius:999px;padding:3px;background:var(--bg2)}
+.seg button{border:0;background:transparent;color:var(--muted);padding:7px 16px;border-radius:999px;font-weight:600;font-size:13px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--surface2);color:var(--fg);box-shadow:0 0 0 1px var(--line2)}
+.subhead{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin-bottom:12px}
+.subhead h2{font-family:var(--font-d);font-weight:400;font-size:34px;letter-spacing:.04em;text-transform:uppercase;color:var(--sc)}
+.tree-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:26px;padding:22px;background:var(--bg2)}
+.canvas{position:relative}
+.canvas svg{position:absolute;left:0;top:0;pointer-events:none}
+.edge{fill:none;stroke:var(--line2);stroke-width:1.5;transition:stroke .2s,opacity .2s}
+.edge.hot{stroke:var(--accent);stroke-width:2.2}
+.edge.dim{opacity:.25}
+.node{position:absolute;width:156px;height:56px;border-radius:15px;background:var(--surface2);border:1px solid var(--line2);border-left:4px solid var(--sc);padding:7px 24px 6px 11px;text-align:left;cursor:pointer;display:flex;flex-direction:column;justify-content:space-between;transition:transform .15s,opacity .2s,border-color .2s,background .2s}
+.node:hover{transform:translateY(-2px);border-color:var(--muted)}
+.node .nm{font-size:12px;font-weight:600;line-height:1.15;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.node .mt{display:flex;align-items:center;gap:7px;font-family:var(--font-m);font-size:9.5px;color:var(--dim)}
+.node .bar{flex:1;height:3px;border-radius:9px;background:var(--line);overflow:hidden}
+.node .bar b{display:block;height:100%;background:var(--sc)}
+.node .st{position:absolute;top:9px;right:9px;width:11px;height:11px;border-radius:50%;border:2px solid var(--dim)}
+.node.s1 .st{background:linear-gradient(90deg,var(--accent) 50%,transparent 50%);border-color:var(--accent)}
+.node.s2 .st{background:var(--good);border-color:var(--good)}
+.node.s3 .st{background:var(--good);border-color:var(--good);box-shadow:0 0 0 3px rgba(70,211,154,.25)}
+.node.t-high{background:linear-gradient(180deg,#1d2230,var(--surface2))}
+.node.sel{border-color:var(--accent);box-shadow:0 0 0 2px rgba(244,196,48,.4);z-index:3}
+.node.rel{border-color:rgba(244,196,48,.55)}
+.node.dim{opacity:.32}
+.lrow{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:14px;align-items:center;width:100%;text-align:left;border:1px solid var(--line);background:var(--surface);border-radius:18px;padding:12px 16px;cursor:pointer;border-left:4px solid var(--sc);transition:border-color .18s}
+.lrow:hover{border-color:var(--line2)}
+.lrow.sel{border-color:var(--accent)}
+.lrow .w{font-family:var(--font-d);font-size:30px;line-height:1;color:var(--sc)}
+.lrow .n{font-weight:600}
+.lrow .p{font-size:12.5px;color:var(--dim)}
+.list{display:flex;flex-direction:column;gap:8px}
+
+/* sheet */
+.sheet{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));width:min(760px,calc(100% - 32px));z-index:30;background:var(--surface);border:1px solid var(--line2);border-radius:26px;padding:18px 22px 20px;box-shadow:0 24px 70px rgba(0,0,0,.65);display:flex;flex-direction:column;gap:12px;animation:rise .25s ease}
+@keyframes rise{from{opacity:0;transform:translate(-50%,14px)}to{opacity:1;transform:translate(-50%,0)}}
+.sheet h3{font-family:var(--font-d);font-weight:400;font-size:34px;letter-spacing:.03em;text-transform:uppercase;line-height:1;padding-right:44px}
+.sheet .x{position:absolute;top:14px;right:14px;width:36px;height:36px;border-radius:50%;border:1px solid var(--line2);background:var(--bg2);cursor:pointer;font-size:18px;color:var(--muted)}
+.rel-row{display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:13px;color:var(--muted)}
+.rel-row button{border:1px solid var(--line2);background:var(--bg2);border-radius:999px;padding:3px 11px;font-size:12px;cursor:pointer;color:var(--fg)}
+.rel-row button:hover{border-color:var(--accent)}
+
+/* forms */
+.form{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px}
+.form .full{grid-column:1/-1}
+label.f{display:flex;flex-direction:column;gap:6px;font-family:var(--font-m);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);min-width:0}
+input,select,textarea{font:inherit;font-size:15px;letter-spacing:0;text-transform:none;color:var(--fg);background:var(--bg2);border:1px solid var(--line2);border-radius:14px;padding:11px 14px;width:100%;min-width:0}
+input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.btn{border:1px solid var(--line2);background:var(--surface2);color:var(--fg);border-radius:999px;padding:11px 22px;font-weight:600;cursor:pointer;transition:all .18s}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.sm{padding:6px 14px;font-size:12.5px}
+.btn.danger{color:var(--bad);border-color:rgba(255,93,108,.4)}
+.empty{border:1px dashed var(--line2);border-radius:20px;padding:26px;text-align:center;color:var(--muted)}
+.empty b{display:block;color:var(--fg);margin-bottom:4px;font-size:16px}
+
+/* log */
+.bars{display:flex;align-items:flex-end;gap:8px;height:140px;position:relative;padding-top:6px;border-bottom:1px solid var(--line2)}
+.bars .goal{position:absolute;left:0;right:0;border-top:1px dashed rgba(244,196,48,.55);font-family:var(--font-m);font-size:10px;color:var(--accent)}
+.bars .goal span{position:absolute;right:0;top:-16px}
+.bcol{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;min-width:0}
+.bcol i{display:block;width:100%;max-width:34px;border-radius:8px 8px 3px 3px;background:var(--line2);min-height:3px}
+.bcol.ok i{background:var(--good)}
+.bcol.mid i{background:var(--warn)}
+.bcol.today i{background:var(--accent)}
+.blabels{display:flex;gap:8px;font-family:var(--font-m);font-size:9.5px;color:var(--dim);margin-top:6px}
+.blabels span{flex:1;text-align:center;min-width:0}
+.hist{display:flex;flex-direction:column}
+.hrow{display:grid;grid-template-columns:90px 70px 90px 70px 1fr;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);font-size:14px;align-items:baseline;min-width:520px}
+.hrow.h{font-family:var(--font-m);font-size:10.5px;text-transform:uppercase;letter-spacing:.1em;color:var(--dim)}
+.scroll-x{overflow-x:auto}
+
+/* mocks + errors */
+.mrow{display:grid;grid-template-columns:90px repeat(4,64px) 1fr auto;gap:10px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line);min-width:560px}
+.mrow .tot{font-family:var(--font-d);font-size:28px;line-height:1}
+.chart{width:100%;height:auto;display:block}
+.chart text{fill:var(--muted);font-family:var(--font-m);font-size:11px}
+.chart .gl{stroke:var(--line);stroke-width:1}
+.chart .ln{fill:none;stroke:var(--accent);stroke-width:3;stroke-linejoin:round;stroke-linecap:round}
+.chart .pt{fill:var(--accent);stroke:var(--surface);stroke-width:3}
+.chart .val{fill:var(--fg);font-weight:600}
+.rbars{display:flex;flex-direction:column;gap:10px}
+.rb{display:grid;grid-template-columns:120px minmax(0,1fr) 30px;gap:12px;align-items:center;font-size:13.5px}
+.rb i{display:block;height:10px;border-radius:99px;background:var(--surface2);overflow:hidden}
+.rb i b{display:block;height:100%;border-radius:99px;background:var(--bad)}
+.rb em{font-style:normal;font-family:var(--font-m);text-align:right}
+.erow{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:14px;align-items:center;padding:14px 16px;border:1px solid var(--line);border-radius:18px;background:var(--bg2)}
+.erow.done{opacity:.55}
+.erow .q{font-weight:600}
+.erow .m{font-size:12.5px;color:var(--muted)}
+.insight{border-radius:18px;background:var(--accent-soft);border:1px solid rgba(244,196,48,.3);padding:14px 18px;font-size:14.5px}
+.insight b{color:var(--accent)}
+.stack{display:flex;flex-direction:column;gap:14px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}html{scroll-behavior:auto}}
+</style>
+
+<header class="top">
+  <div class="brand">
+    <svg viewBox="0 0 120 64" aria-hidden="true"><path fill="currentColor" d="M60 6 L65 14 L71 13 C77 22 90 24 118 18 C109 26 107 36 99 42 C95 38 89 38 85 44 C81 40 75 41 73 49 C69 47 66 50 60 58 C54 50 51 47 47 49 C45 41 39 40 35 44 C31 38 25 38 21 42 C13 36 11 26 2 18 C30 24 43 22 49 13 L55 14 Z"/></svg>
+    <b>Nightwatch</b>
+  </div>
+  <nav class="tabs" id="tabs" role="tablist" aria-label="Sections"></nav>
+  <div class="sync" id="sync"><i></i><span>Saving on this device</span></div>
+</header>
+<main class="wrap" id="view"></main>
+<aside class="sheet" id="sheet" hidden></aside>
+
+<script>
+(function(){
+'use strict';
+
+/* ---------- data: 77 chapters, weight 1-10 = typical JEE Main yield, prerequisites ---------- */
+const RAW=[
+['M','m_func','Sets, Relations & Functions',6,[]],
+['M','m_trig','Trigonometry',5,[]],
+['M','m_itf','Inverse Trigonometry',4,['m_func','m_trig']],
+['M','m_quad','Quadratic Equations',6,[]],
+['M','m_cx','Complex Numbers',7,['m_quad','m_trig']],
+['M','m_seq','Sequences & Series',6,['m_quad']],
+['M','m_pnc','Permutations & Combinations',6,[]],
+['M','m_bin','Binomial Theorem',7,['m_pnc']],
+['M','m_prob','Probability',8,['m_pnc']],
+['M','m_mat','Matrices',6,[]],
+['M','m_det','Determinants',7,['m_mat']],
+['M','m_line','Straight Lines',7,[]],
+['M','m_circ','Circles',7,['m_line']],
+['M','m_para','Parabola',6,['m_circ']],
+['M','m_ell','Ellipse & Hyperbola',6,['m_para']],
+['M','m_lim','Limits',7,['m_func']],
+['M','m_cont','Continuity & Differentiability',8,['m_lim']],
+['M','m_aod','Application of Derivatives',9,['m_cont']],
+['M','m_ind','Indefinite Integration',8,['m_cont']],
+['M','m_def','Definite Integration',9,['m_ind']],
+['M','m_area','Area Under Curves',6,['m_def']],
+['M','m_de','Differential Equations',7,['m_ind']],
+['M','m_vec','Vectors',7,[]],
+['M','m_3d','3D Geometry',8,['m_vec','m_line']],
+['M','m_stat','Statistics',4,[]],
+['M','m_logic','Mathematical Reasoning',2,[]],
+['P','p_units','Units & Dimensions',4,[]],
+['P','p_kin','Kinematics',7,['p_units']],
+['P','p_lom','Laws of Motion & Friction',8,['p_kin']],
+['P','p_wep','Work, Energy & Power',8,['p_lom']],
+['P','p_circ','Circular Motion',5,['p_lom']],
+['P','p_com','Centre of Mass & Collisions',7,['p_wep']],
+['P','p_rot','Rotational Motion',8,['p_com']],
+['P','p_grav','Gravitation',6,['p_wep','p_circ']],
+['P','p_solid','Properties of Matter & Fluids',6,['p_wep']],
+['P','p_ktg','Kinetic Theory of Gases',6,['p_units']],
+['P','p_thermo','Thermodynamics',8,['p_ktg']],
+['P','p_heat','Heat Transfer & Calorimetry',4,['p_thermo']],
+['P','p_shm','Oscillations (SHM)',7,['p_wep']],
+['P','p_wave','Waves & Sound',6,['p_shm']],
+['P','p_es','Electrostatics',9,['p_wep']],
+['P','p_cap','Capacitors',7,['p_es']],
+['P','p_ce','Current Electricity',9,['p_es']],
+['P','p_mag','Magnetism & Moving Charges',8,['p_ce']],
+['P','p_emi','Electromagnetic Induction',7,['p_mag']],
+['P','p_ac','Alternating Current',5,['p_emi']],
+['P','p_emw','EM Waves',3,['p_ac']],
+['P','p_ray','Ray Optics',7,[]],
+['P','p_wopt','Wave Optics',6,['p_ray','p_wave']],
+['P','p_dual','Dual Nature of Matter',5,[]],
+['P','p_nuc','Atoms & Nuclei',6,['p_dual']],
+['P','p_semi','Semiconductors',6,[]],
+['P','p_exp','Experimental Skills',4,['p_units']],
+['C','c_mole','Mole Concept',8,[]],
+['C','c_atom','Atomic Structure',7,[]],
+['C','c_bond','Chemical Bonding',8,['c_atom']],
+['C','c_peri','Periodic Table & Properties',5,['c_atom']],
+['C','c_thermo','Chemical Thermodynamics',7,['c_mole']],
+['C','c_eq','Chemical Equilibrium',8,['c_mole']],
+['C','c_ionic','Ionic Equilibrium',8,['c_eq']],
+['C','c_redox','Redox & Electrochemistry',8,['c_mole']],
+['C','c_kin','Chemical Kinetics',7,['c_mole']],
+['C','c_sol','Solutions',6,['c_mole']],
+['C','c_coord','Coordination Compounds',8,['c_bond']],
+['C','c_dblock','d & f Block',5,['c_peri']],
+['C','c_pblock','p-Block Elements',7,['c_peri','c_bond']],
+['C','c_sblock','s-Block & Hydrogen',3,['c_peri']],
+['C','c_goc','General Organic Chemistry',9,['c_bond']],
+['C','c_hc','Hydrocarbons',6,['c_goc']],
+['C','c_halo','Haloalkanes & Haloarenes',7,['c_goc']],
+['C','c_alc','Alcohols, Phenols & Ethers',7,['c_halo']],
+['C','c_ald','Aldehydes & Ketones',8,['c_alc']],
+['C','c_acid','Carboxylic Acids & Derivatives',5,['c_ald']],
+['C','c_amine','Amines',6,['c_goc']],
+['C','c_bio','Biomolecules',4,['c_goc']],
+['C','c_poly','Polymers & Everyday Chemistry',2,['c_bio']],
+['C','c_prac','Practical Chemistry',4,['c_ionic']]
+];
+const SUBS={M:{n:'Mathematics',cls:'sM'},P:{n:'Physics',cls:'sP'},C:{n:'Chemistry',cls:'sC'}};
+const ST=['Not started','Lecture done','Practice done','Revised'];
+const REASONS=['Concept gap','Silly mistake','Time pressure','Never studied it'];
+const tier=w=>w>=7?['high','High yield']:w>=5?['mid','Medium yield']:['low','Low yield'];
+
+const CH=RAW.map((r,i)=>({sub:r[0],id:r[1],name:r[2],w:r[3],pre:r[4],i:i,next:[]}));
+const BY={};CH.forEach(c=>BY[c.id]=c);
+CH.forEach(c=>c.pre.forEach(p=>BY[p].next.push(c.id)));
+const N=CH.length;
+function maxDesc(c){if(c._md!=null)return c._md;let m=0;c.next.forEach(n=>{m=Math.max(m,BY[n].w,maxDesc(BY[n]));});return c._md=m;}
+CH.forEach(c=>{c.pr=Math.max(c.w,maxDesc(c)-1);});
+function depth(c){if(c._d!=null)return c._d;return c._d=c.pre.length?1+Math.max.apply(null,c.pre.map(p=>depth(BY[p]))):0;}
+CH.forEach(depth);
+
+/* plan: rotate M,P,C; each day take the highest-priority chapter whose prerequisites are already planned */
+const PLAN=[];(function(){
+  const done=new Set(),rem={M:[],P:[],C:[]},rot=['M','P','C'];let k=0;
+  CH.forEach(c=>rem[c.sub].push(c));
+  while(PLAN.length<N){
+    let pick=null;
+    for(let t=0;t<3&&!pick;t++){
+      const s=rot[(k+t)%3];
+      const cand=rem[s].filter(c=>c.pre.every(p=>done.has(p)));
+      if(cand.length){cand.sort((a,b)=>b.pr-a.pr||b.w-a.w||a.i-b.i);pick=cand[0];}
+    }
+    if(!pick)break;
+    rem[pick.sub]=rem[pick.sub].filter(c=>c!==pick);done.add(pick.id);PLAN.push(pick);pick.day=PLAN.length;k++;
+  }
+})();
+
+/* ---------- dates ---------- */
+const START=new Date(2026,9,13),DAY=86400000;
+const today=()=>{const n=new Date();return new Date(n.getFullYear(),n.getMonth(),n.getDate());};
+const ymd=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const dayNum=d=>Math.round((d-START)/DAY)+1;
+const dateOf=n=>new Date(START.getFullYear(),START.getMonth(),START.getDate()+n-1);
+const fmt=d=>d.toLocaleDateString('en-IN',{day:'numeric',month:'short'});
+const fmtL=d=>d.toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short'});
+const ago=i=>{const t=today();return new Date(t.getFullYear(),t.getMonth(),t.getDate()-i);};
+const MOCK_FROM=new Date(2026,10,1);
+
+/* ---------- state + sync ---------- */
+const KEY='nightwatch.v1';
+const blank=()=>({v:1,ch:{},log:{},tasks:{},mocks:[],errs:[],updated:0});
+function lsLoad(){try{const r=localStorage.getItem(KEY);if(r)return Object.assign(blank(),JSON.parse(r));}catch(e){}return blank();}
+function lsSave(){try{localStorage.setItem(KEY,JSON.stringify(st));}catch(e){}}
+let st=lsLoad();
+let ui={tab:'hq',view:'tree',sel:null,logDate:null,errFilter:'open',confirm:null};
+try{const t=localStorage.getItem('nw.tab');if(t)ui.tab=t;}catch(e){}
+let dbDoc=null,syncState='local',syncTimer=null,writing=false,dirty=false;
+function paintSync(){
+  const el=document.getElementById('sync');if(!el)return;
+  el.className='sync'+(syncState==='synced'?' ok':syncState==='error'?' err':'');
+  el.querySelector('span').textContent=syncState==='synced'?'Synced to your account':syncState==='error'?'Sync failed, saved here':'Saved on this device';
+}
+async function push(){
+  if(!dbDoc)return;if(writing){dirty=true;return;}
+  writing=true;
+  try{await dbDoc.set({state:JSON.parse(JSON.stringify(st))});syncState='synced';}catch(e){syncState='error';}
+  writing=false;paintSync();
+  if(dirty){dirty=false;push();}
+}
+function persist(){st.updated=Date.now();lsSave();if(dbDoc){clearTimeout(syncTimer);syncTimer=setTimeout(push,1200);}}
+async function initSync(){
+  try{
+    if(!(window.claude&&window.claude.use))return;
+    const db=await window.claude.use('db'),user=await window.claude.use('user');
+    if(!db||!user)return;
+    const id=await user.id();if(!id)return;
+    dbDoc=db.doc('data/users/'+id+'/tracker');
+    const snap=await dbDoc.get();
+    const d=snap.exists?snap.data():null;
+    if(d&&d.state&&d.state.updated>st.updated){st=Object.assign(blank(),JSON.parse(JSON.stringify(d.state)));lsSave();renderAll();}
+    else if(st.updated>0){await push();}
+    syncState='synced';paintSync();
+  }catch(e){syncState='local';paintSync();}
+}
+
+/* ---------- helpers ---------- */
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const num=v=>{const n=parseFloat(v);return isFinite(n)?n:0;};
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const S=id=>st.ch[id]||0;
+const setS=(id,v)=>{st.ch[id]=v;};
+const logOf=k=>st.log[k]||{};
+const nextChapter=()=>PLAN.find(c=>S(c.id)<2)||null;
+
+function stats(){
+  const t=today(),d=dayNum(t);
+  const covered=CH.filter(c=>S(c.id)>=2).length;
+  const pace=covered-Math.min(Math.max(d-1,0),N);
+  let total=0,days=0;Object.keys(st.log).forEach(k=>{const h=st.log[k].hrs||0;total+=h;if(h>0)days++;});
+  const span=Math.min(7,Math.max(d,1));let h7=0,a7=0,c7=0,logged=0;
+  for(let i=0;i<span;i++){const L=logOf(ymd(ago(i)));h7+=L.hrs||0;a7+=L.att||0;c7+=L.cor||0;if((L.hrs||0)>0)logged++;}
+  let streak=0;for(let i=(logOf(ymd(t)).hrs||0)>=6?0:1;i<120;i++){if((logOf(ymd(ago(i))).hrs||0)>=6)streak++;else break;}
+  return {t:t,d:d,covered:covered,pace:pace,total:total,days:days,span:span,h7:h7,a7:a7,c7:c7,logged:logged,streak:streak};
+}
+function cooked(s){
+  if(s.d<3)return {calib:true};
+  const behind=Math.max(0,-s.pace),avg=s.h7/s.span;
+  const acc=s.a7>=20?s.c7/s.a7*100:null;
+  const p1=Math.min(40,behind*8),p2=clamp((9-avg)/9,0,1)*35,p3=acc==null?0:clamp((70-acc)/70,0,1)*20,p4=Math.min(5,s.span-s.logged);
+  const score=Math.round(clamp(p1+p2+p3+p4,0,100));
+  const label=score<20?'Fresh. Keep the lights on.':score<45?'Warming up. Small fixes now.':score<70?'Getting toasty. Fix it this week.':'Cooked. Reset today, not tomorrow.';
+  return {calib:false,score:score,label:label,parts:[['Pace',p1,40],['Hours',p2,35],['Accuracy',p3,20],['Missed logs',p4,5]],avg:avg,acc:acc,behind:behind};
+}
+
+/* ---------- views ---------- */
+function skyline(){
+  let r='',x=0,i=0;
+  while(x<1200){const w=26+((i*37)%34),h=24+Math.abs(Math.sin(i*1.7)*46)+((i*13)%22);
+    r+='<rect x="'+x+'" y="'+(110-h)+'" width="'+w+'" height="'+h+'" fill="#06070a"/>';
+    for(let wy=110-h+8;wy<104;wy+=12){for(let wx=x+5;wx<x+w-6;wx+=9){if(((wx*7+wy*3+i)%11)===0)r+='<rect x="'+wx+'" y="'+wy+'" width="3" height="4" fill="#f4c430" opacity=".55"/>';}}
+    x+=w+((i*5)%7);i++;}
+  return '<svg class="skyline" viewBox="0 0 1200 110" preserveAspectRatio="none" aria-hidden="true">'+r+'</svg>';
+}
+const BAT='<svg viewBox="0 0 120 64" aria-hidden="true"><path fill="currentColor" d="M60 6 L65 14 L71 13 C77 22 90 24 118 18 C109 26 107 36 99 42 C95 38 89 38 85 44 C81 40 75 41 73 49 C69 47 66 50 60 58 C54 50 51 47 47 49 C45 41 39 40 35 44 C31 38 25 38 21 42 C13 36 11 26 2 18 C30 24 43 22 49 13 L55 14 Z"/></svg>';
+
+function phaseOf(d){
+  if(d<1)return ['Pre-launch','Day 1 is '+fmtL(START)+'. Plan loaded, nothing to do but sleep.'];
+  if(d<=N)return ['Learn phase','One chapter a day, highest yield first. Lecture, 30-40 questions, error log.'];
+  if(d<=80)return ['Buffer days','Finish anything pending, then fix your weakest chapters.'];
+  if(d<=100)return ['War room','No new content. Mocks, error vault, formula revision.'];
+  return ['Session time','The 100 days are over. Go and write the paper.'];
+}
+
+function renderHQ(){
+  const s=stats(),t=s.t,d=s.d,dd=clamp(d,0,100),key=ymd(t),ph=phaseOf(d);
+  const left=Math.max(0,100-Math.max(d,1)+1);
+  const L=logOf(key),cm=cooked(s);
+  const nxt=nextChapter();
+  const tk=st.tasks[key]||{};
+  const mockDay=t.getDay()===0&&t>=MOCK_FROM&&d<=100;
+  /* mission */
+  let mission='';
+  const items=nxt?[['lec','Lecture finished','1.5x speed, pause and try each example first'],['prac','30-40 PYQ questions solved','Mostly JEE Main previous years'],['err','Error log filled','Every wrong question, with the reason'],['rec','Yesterday recalled from memory','20 minutes, no notes, then check']]
+                 :[['lec','Mock or sectional test done','Timed, exam-like, phone away'],['prac','Every wrong question analysed','Concept gap, silly mistake or time?'],['err','Error vault items re-solved','Open items only'],['rec','Formula sheets revised','Physics, Chemistry, Maths']];
+  const checks=items.map(i=>'<button class="check'+(tk[i[0]]?' on':'')+'" data-act="task" data-k="'+i[0]+'"><span class="box">&#10003;</span><span><span class="t">'+i[1]+'</span><small>'+i[2]+'</small></span></button>').join('');
+  if(nxt){
+    const tr=tier(nxt.w),late=d-nxt.day;
+    const miss=nxt.pre.filter(p=>S(p)<2).map(p=>BY[p].name);
+    mission='<section class="card mission"><div class="row"><span class="eyebrow">'+(late>0?'Next up, planned Day '+nxt.day:'Today’s chapter')+'</span>'+(late>0?'<span class="chip" style="color:var(--bad);border-color:rgba(255,93,108,.4)">'+late+' day'+(late>1?'s':'')+' late</span>':'')+'</div>'
+      +'<div class="mname">'+esc(nxt.name)+'</div>'
+      +'<div class="row"><span class="chip '+SUBS[nxt.sub].cls+'">'+SUBS[nxt.sub].n+'</span><span class="chip '+tr[0]+'">'+tr[1]+' · W'+nxt.w+'</span><button class="btn sm" data-act="goto" data-id="'+nxt.id+'">See its branch</button></div>'
+      +(miss.length?'<div class="banner bad">Prerequisite not covered yet: '+esc(miss.join(', '))+'. Skim it first.</div>':'')
+      +'<div class="stepper" role="group" aria-label="Chapter progress">'+ST.map((n,i)=>'<button class="step'+(S(nxt.id)===i?' on':'')+(i===3?' l3':'')+'" data-act="status" data-id="'+nxt.id+'" data-v="'+i+'">'+n+'</button>').join('')+'</div>'
+      +'<div class="checks">'+checks+'</div></section>';
+  }else{
+    mission='<section class="card mission"><div class="eyebrow">War room</div><div class="mname">All '+N+' chapters covered</div><p class="note">Now it is mocks, the error vault and revision.</p><div class="checks">'+checks+'</div></section>';
+  }
+  const banner=mockDay?'<div class="banner">Mock day. A full 3-hour paper in the afternoon, then analyse every wrong question before you sleep.</div>':'';
+  /* meter */
+  let meter;
+  if(cm.calib){
+    meter='<section class="card"><h2>Cooked-o-meter</h2><div class="gauge"><b style="left:0%"></b></div><p class="note">Calibrating. It needs about 3 days of logs before it says anything useful. Log hours and questions every night.</p></section>';
+  }else{
+    meter='<section class="card"><h2>Cooked-o-meter</h2><div class="row" style="align-items:flex-end;gap:14px"><span class="score">'+cm.score+'</span><span class="note" style="padding-bottom:6px">/ 100. Lower is better.</span></div><div class="gauge"><b style="left:'+cm.score+'%"></b></div><p>'+cm.label+'</p><div class="parts">'
+      +cm.parts.map(p=>'<div class="part"><span>'+p[0]+'</span><i><b style="width:'+(p[1]/p[2]*100)+'%"></b></i><em>+'+Math.round(p[1])+'</em></div>').join('')+'</div>'
+      +'<p class="note">'+(s.pace>0?'Ahead by '+s.pace+' chapter'+(s.pace>1?'s':'')+'.':s.pace===0?'Exactly on pace.':'Behind by '+(-s.pace)+'. Use Sunday to catch up or drop the lowest-yield chapter.')+'</p></section>';
+  }
+  /* tiles */
+  const acc=s.a7>=1?Math.round(s.c7/s.a7*100)+'<small>%</small>':'<small>—</small>';
+  const tiles='<div class="tiles">'
+    +'<div class="tile"><span class="k">Chapters covered</span><span class="v">'+s.covered+'<small> / '+N+'</small></span><span class="s">'+CH.filter(c=>S(c.id)===3).length+' revised</span></div>'
+    +'<div class="tile"><span class="k">Hours today</span><span class="v">'+(L.hrs||0)+'<small> / 10</small></span><span class="s">'+Math.round(s.total)+' h in total, '+s.days+' days logged</span></div>'
+    +'<div class="tile"><span class="k">7-day accuracy</span><span class="v">'+acc+'</span><span class="s">'+s.a7+' questions attempted</span></div>'
+    +'<div class="tile"><span class="k">Streak</span><span class="v">'+s.streak+'<small> days</small></span><span class="s">Days with 6+ hours</span></div></div>';
+  /* map */
+  let map='';
+  for(let n=1;n<=100;n++){
+    const dt=dateOf(n),c=n<=N?PLAN[n-1]:null,lg=logOf(ymd(dt));let cls='cell',tip='Day '+n+' · '+fmt(dt);
+    if(c){tip+=' · '+c.name;cls+=' '+SUBS[c.sub].cls+(S(c.id)>=2?' ok':(n<d?' miss':''));}
+    else{cls+=n<=80?' buf':' mock';tip+=n<=80?' · buffer and weak chapters':' · mock and analysis';if((lg.hrs||0)>0)cls+=' ok';else if(n<d)cls+=' miss';}
+    if(n===d)cls+=' now';
+    map+=c?'<button class="'+cls+'" data-act="goto" data-id="'+c.id+'" title="'+esc(tip)+'">'+n+'</button>':'<div class="'+cls+'" title="'+esc(tip)+'">'+n+'</div>';
+  }
+  const tt=[['09:00–12:00','Lecture','The chapter of the day, 1.5x, pause on examples',1],['12:00–13:00','Lunch and reset','Walk, no phone',0],['13:00–16:30','Practice block','30-40 questions on today’s chapter',1],['16:30–17:00','Break','',0],['17:00–19:00','PYQs and weak topics','Open items from the error vault',0],['19:00–20:00','Dinner','',0],['20:00–21:30','Error log and recall','Log every miss, recall yesterday, fill tonight’s numbers',1],['21:30–22:00','Light revision','Formulae only. Sleep by 23:00.',0]];
+  const ttHTML='<div class="tt">'+tt.map(r=>'<div'+(r[3]?' class="hl"':'')+'><span class="tm">'+r[0]+'</span><span><b>'+r[1]+'</b>'+(r[2]?'<small>'+r[2]+'</small>':'')+'</span></div>').join('')+'</div>';
+  return '<section class="hero">'+skyline()+'<div class="beam"></div><div class="signal">'+BAT+'</div><div class="hero-in"><p class="eyebrow">JEE Main · January 2027 session</p>'
+    +'<h1><span class="big">Day '+dd+'</span><span class="of">/ 100</span></h1><p class="sub">'+ph[1]+'</p>'
+    +'<div class="prog" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+dd+'"><i style="width:'+dd+'%"></i></div>'
+    +'<div class="hero-meta"><span class="pill hot">'+ph[0]+'</span><span class="pill">'+fmtL(t)+'</span><span class="pill">'+left+' days left</span></div></div></section>'
+    +banner+'<div class="grid2">'+mission+meter+'</div>'+tiles
+    +'<div class="grid2b"><section class="card"><h2>100-day map</h2><div class="map">'+map+'</div><div class="legend"><span><i style="background:rgba(70,211,154,.3)"></i>Covered</span><span><i style="background:rgba(255,93,108,.25)"></i>Missed</span><span><i style="border-color:var(--accent)"></i>Today</span><span><i style="border-style:dashed"></i>Buffer / mocks</span></div><p class="note">Underline colour is the subject: orange maths, blue physics, violet chemistry. Tap a day to open its chapter.</p></section>'
+    +'<section class="card"><h2>Daily protocol</h2>'+ttHTML+'</section></div>';
+}
+
+/* ---- chapter tree ---- */
+function related(id){
+  const anc=new Set(),des=new Set();
+  (function up(x){BY[x].pre.forEach(p=>{if(!anc.has(p)){anc.add(p);up(p);}});})(id);
+  (function dn(x){BY[x].next.forEach(n=>{if(!des.has(n)){des.add(n);dn(n);}});})(id);
+  return {anc:anc,des:des};
+}
+function treeHTML(sub){
+  const NW=156,NH=56,GX=56,GY=12;
+  const nodes=CH.filter(c=>c.sub===sub),layers={},pos={};let rows=0,cols=0;
+  nodes.forEach(c=>{(layers[c._d]=layers[c._d]||[]).push(c);});
+  Object.keys(layers).forEach(k=>{layers[k].sort((a,b)=>b.w-a.w||a.i-b.i).forEach((c,r)=>{pos[c.id]={x:k*(NW+GX),y:r*(NH+GY)};});rows=Math.max(rows,layers[k].length);cols=Math.max(cols,+k+1);});
+  const W=cols*(NW+GX)-GX,H=rows*(NH+GY)-GY;
+  let rel=null,relSet=null;if(ui.sel&&BY[ui.sel]&&BY[ui.sel].sub===sub){rel=related(ui.sel);relSet=new Set([ui.sel]);rel.anc.forEach(x=>relSet.add(x));rel.des.forEach(x=>relSet.add(x));}
+  const anySel=ui.sel&&BY[ui.sel];
+  let svg='',html='';
+  nodes.forEach(c=>c.pre.forEach(p=>{
+    const a=pos[p],b=pos[c.id],x1=a.x+NW,y1=a.y+NH/2,x2=b.x,y2=b.y+NH/2,mx=GX/2;
+    let cls='edge';if(anySel){const inSub=BY[ui.sel].sub===sub;if(inSub&&relSet.has(p)&&relSet.has(c.id))cls+=' hot';else cls+=' dim';}
+    svg+='<path class="'+cls+'" d="M'+x1+' '+y1+' C'+(x1+mx)+' '+y1+' '+(x2-mx)+' '+y2+' '+x2+' '+y2+'"/>';
+  }));
+  nodes.forEach(c=>{
+    const p=pos[c.id],tr=tier(c.w);let cls='node '+SUBS[sub].cls+' s'+S(c.id)+' t-'+tr[0];
+    if(ui.sel===c.id)cls+=' sel';else if(relSet&&relSet.has(c.id))cls+=' rel';else if(anySel)cls+=' dim';
+    html+='<button class="'+cls+'" data-act="sel" data-id="'+c.id+'" style="left:'+p.x+'px;top:'+p.y+'px" aria-label="'+esc(c.name)+', weight '+c.w+', '+ST[S(c.id)]+'"><i class="st"></i><span class="nm">'+esc(c.name)+'</span><span class="mt"><span class="bar"><b style="width:'+c.w*10+'%"></b></span><span>W'+c.w+'</span><span>D'+c.day+'</span></span></button>';
+  });
+  return '<div class="canvas" style="width:'+W+'px;height:'+H+'px"><svg width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'">'+svg+'</svg>'+html+'</div>';
+}
+function renderTree(){
+  const bar='<div class="toolbar"><div><p class="eyebrow">Chapter map</p><p class="note">Left to right is the order you must learn them. Top to bottom is highest yield first. Tap a chapter to trace everything it depends on and everything it unlocks.</p></div>'
+    +'<div class="seg" role="group" aria-label="View"><button data-act="view" data-v="tree" aria-pressed="'+(ui.view==='tree')+'">Branches</button><button data-act="view" data-v="list" aria-pressed="'+(ui.view==='list')+'">By weightage</button></div></div>'
+    +'<div class="legend"><span><i style="border-radius:50%;border:2px solid var(--dim)"></i>Not started</span><span><i style="border-radius:50%;background:linear-gradient(90deg,var(--accent) 50%,transparent 50%);border-color:var(--accent)"></i>Lecture</span><span><i style="border-radius:50%;background:var(--good);border-color:var(--good)"></i>Practiced</span><span><i style="border-radius:50%;background:var(--good);box-shadow:0 0 0 3px rgba(70,211,154,.25)"></i>Revised</span><span class="mono">W = weight / 10 · D = planned day</span></div>';
+  let body='';
+  if(ui.view==='tree'){
+    body=['M','P','C'].map(s=>{const list=CH.filter(c=>c.sub===s),cv=list.filter(c=>S(c.id)>=2).length;
+      return '<section class="'+SUBS[s].cls+'"><div class="subhead"><h2>'+SUBS[s].n+'</h2><span class="note">'+cv+' of '+list.length+' covered</span></div><div class="tree-wrap">'+treeHTML(s)+'</div></section>';}).join('');
+  }else{
+    const sorted=CH.slice().sort((a,b)=>b.w-a.w||a.day-b.day);
+    body='<div class="list">'+sorted.map(c=>'<button class="lrow '+SUBS[c.sub].cls+(ui.sel===c.id?' sel':'')+'" data-act="sel" data-id="'+c.id+'"><span class="w">'+c.w+'</span><span><span class="n">'+esc(c.name)+'</span><br><span class="p">'+SUBS[c.sub].n+(c.pre.length?' · needs '+esc(c.pre.map(p=>BY[p].name).join(', ')):' · no prerequisite')+' · Day '+c.day+'</span></span><span class="chip">'+ST[S(c.id)]+'</span></button>').join('')+'</div>';
+  }
+  return '<div class="stack">'+bar+body+'</div>';
+}
+function renderSheet(){
+  const el=document.getElementById('sheet');
+  if(ui.tab!=='tree'||!ui.sel||!BY[ui.sel]){el.hidden=true;el.innerHTML='';return;}
+  const c=BY[ui.sel],tr=tier(c.w);
+  const chips=ids=>ids.length?ids.map(i=>'<button data-act="sel" data-id="'+i+'">'+esc(BY[i].name)+'</button>').join(''):'<span>nothing</span>';
+  el.hidden=false;
+  el.innerHTML='<button class="x" data-act="clear" aria-label="Close">&times;</button><div class="row"><span class="chip '+SUBS[c.sub].cls+'">'+SUBS[c.sub].n+'</span><span class="chip '+tr[0]+'">'+tr[1]+' · W'+c.w+'</span><span class="chip">Planned Day '+c.day+' · '+fmt(dateOf(c.day))+'</span></div><h3>'+esc(c.name)+'</h3>'
+    +'<div class="rel-row"><span>Needs:</span>'+chips(c.pre)+'</div><div class="rel-row"><span>Unlocks:</span>'+chips(c.next)+'</div>'
+    +'<div class="stepper" role="group" aria-label="Chapter progress">'+ST.map((n,i)=>'<button class="step'+(S(c.id)===i?' on':'')+(i===3?' l3':'')+'" data-act="status" data-id="'+c.id+'" data-v="'+i+'">'+n+'</button>').join('')+'</div>';
+}
+
+/* ---- log ---- */
+function histHTML(){
+  const keys=Object.keys(st.log).sort().reverse().slice(0,30),k0=ymd(today());
+  let bars='',lab='';
+  for(let i=13;i>=0;i--){const k=ymd(ago(i)),h=logOf(k).hrs||0;
+    bars+='<div class="bcol'+(k===k0?' today':h>=9?' ok':h>=6?' mid':'')+'" title="'+fmt(ago(i))+': '+h+' h"><i style="height:'+Math.min(100,h/12*100)+'%"></i></div>';
+    lab+='<span>'+ago(i).getDate()+'</span>';}
+  const rows=keys.length?keys.map(k=>{const L=st.log[k],a=L.att?Math.round((L.cor||0)/L.att*100)+'%':'—';
+    return '<div class="hrow"><span class="mono">'+fmt(new Date(k+'T00:00:00'))+'</span><span>'+(L.hrs||0)+' h</span><span>'+(L.cor||0)+' / '+(L.att||0)+'</span><span>'+a+'</span><span class="note">'+(L.sleep?L.sleep+' h sleep. ':'')+esc(L.note||'')+'</span></div>';}).join(''):'<div class="empty"><b>Nothing logged yet</b>Fill tonight’s numbers above. After two weeks this page shows exactly where your time goes.</div>';
+  return '<div class="stack"><div><div class="bars"><div class="goal" style="bottom:'+(10/12*100)+'%"><span>10 h goal</span></div>'+bars+'</div><div class="blabels">'+lab+'</div></div>'
+    +'<div class="scroll-x"><div class="hist"><div class="hrow h"><span>Date</span><span>Hours</span><span>Right / tried</span><span>Acc.</span><span>Notes</span></div>'+rows+'</div></div></div>';
+}
+function renderLog(){
+  const k=ui.logDate||ymd(today()),L=logOf(k);
+  return '<div class="stack"><section class="card"><h2>Nightly log</h2><p class="note">Takes one minute. This is the data that tells you what to fix.</p>'
+    +'<div class="form"><label class="f">Date<input type="date" id="lg-date" value="'+k+'" max="'+ymd(today())+'"></label>'
+    +'<label class="f">Hours studied<input type="number" id="lg-hrs" data-lg="hrs" step="0.25" min="0" max="18" inputmode="decimal" value="'+(L.hrs!=null?L.hrs:'')+'"></label>'
+    +'<label class="f">Questions tried<input type="number" id="lg-att" data-lg="att" min="0" inputmode="numeric" value="'+(L.att!=null?L.att:'')+'"></label>'
+    +'<label class="f">Questions right<input type="number" id="lg-cor" data-lg="cor" min="0" inputmode="numeric" value="'+(L.cor!=null?L.cor:'')+'"></label>'
+    +'<label class="f">Sleep last night (h)<input type="number" id="lg-sleep" data-lg="sleep" step="0.25" min="0" max="14" inputmode="decimal" value="'+(L.sleep!=null?L.sleep:'')+'"></label>'
+    +'<label class="f full">One line about the day<input type="text" id="lg-note" data-lg="note" maxlength="200" placeholder="What went well, what slipped" value="'+esc(L.note||'')+'"></label></div></section>'
+    +'<section class="card"><h2>Last 14 days</h2><div id="loghist">'+histHTML()+'</div></section></div>';
+}
+
+/* ---- mocks ---- */
+function mockChart(ms){
+  if(!ms.length)return '';
+  const W=640,H=220,L=44,R=20,T=24,B=30,n=ms.length;
+  const x=i=>n===1?(L+W-R)/2:L+i*(W-L-R)/(n-1),y=v=>T+(1-(clamp(v,0,300)/300))*(H-T-B);
+  let g='';[0,100,200,300].forEach(v=>{g+='<line class="gl" x1="'+L+'" x2="'+(W-R)+'" y1="'+y(v)+'" y2="'+y(v)+'"/><text x="'+(L-8)+'" y="'+(y(v)+4)+'" text-anchor="end">'+v+'</text>';});
+  const pts=ms.map((m,i)=>x(i)+','+y(m.t)).join(' ');
+  let dots='';ms.forEach((m,i)=>{dots+='<circle class="pt" cx="'+x(i)+'" cy="'+y(m.t)+'" r="6"/><text class="val" x="'+x(i)+'" y="'+(y(m.t)-14)+'" text-anchor="middle">'+m.t+'</text><text x="'+x(i)+'" y="'+(H-8)+'" text-anchor="middle">'+fmt(new Date(m.d+'T00:00:00'))+'</text>';});
+  return '<svg class="chart" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Mock total scores over time">'+g+(n>1?'<polyline class="ln" points="'+pts+'"/>':'')+dots+'</svg>';
+}
+function renderMocks(){
+  const ms=st.mocks.slice().sort((a,b)=>a.d<b.d?-1:1),t=today();
+  let nextSun=new Date(Math.max(t,MOCK_FROM));while(nextSun.getDay()!==0)nextSun=new Date(nextSun.getFullYear(),nextSun.getMonth(),nextSun.getDate()+1);
+  let insight='';
+  if(ms.length){
+    const avg=k=>Math.round(ms.reduce((a,m)=>a+m[k],0)/ms.length),av={P:avg('p'),C:avg('c'),M:avg('m')};
+    const weak=Object.keys(av).sort((a,b)=>av[a]-av[b])[0];
+    insight='<div class="insight">Average so far: Physics <b>'+av.P+'</b>, Chemistry <b>'+av.C+'</b>, Maths <b>'+av.M+'</b>. Weakest subject is <b>'+SUBS[weak].n+'</b>. '+(ms.length>1?'Last mock vs first: <b>'+(ms[ms.length-1].t-ms[0].t>=0?'+':'')+(ms[ms.length-1].t-ms[0].t)+'</b> marks.':'Take the next one to see a trend.')+'</div>';
+  }
+  const rows=ms.slice().reverse().map(m=>'<div class="mrow"><span class="mono">'+fmt(new Date(m.d+'T00:00:00'))+'</span><span class="tot">'+m.t+'</span><span>P '+m.p+'</span><span>C '+m.c+'</span><span>M '+m.m+'</span><span class="note">'+esc(m.n||'')+'</span><button class="btn sm danger" data-act="mock-del" data-id="'+m.id+'">'+(ui.confirm===m.id?'Sure?':'Delete')+'</button></div>').join('');
+  return '<div class="stack"><section class="card"><h2>Mock tests</h2><p class="note">Start in week 4. First one is due Sunday '+fmt(nextSun)+'. Each subject is out of 100, total out of 300.</p>'
+    +'<div class="form"><label class="f">Date<input type="date" id="mk-date" value="'+ymd(t)+'"></label><label class="f">Physics<input type="number" id="mk-p" min="-25" max="100" inputmode="numeric"></label><label class="f">Chemistry<input type="number" id="mk-c" min="-25" max="100" inputmode="numeric"></label><label class="f">Maths<input type="number" id="mk-m" min="-25" max="100" inputmode="numeric"></label>'
+    +'<label class="f full">What cost you marks<input type="text" id="mk-n" maxlength="200" placeholder="Silly mistakes in Maths, ran out of time in Chemistry"></label></div><div><button class="btn primary" data-act="mock-add">Add mock</button></div></section>'
+    +(ms.length?'<section class="card"><h2>Trend</h2>'+mockChart(ms)+insight+'<div class="scroll-x"><div>'+rows+'</div></div></section>':'<div class="empty"><b>No mocks yet</b>Your score trend and weakest subject will show up here after the first one.</div>')+'</div>';
+}
+
+/* ---- error vault ---- */
+function renderErrors(){
+  const all=st.errs,open=all.filter(e=>!e.r),list=(ui.errFilter==='open'?open:all).slice().reverse();
+  const cnt={};REASONS.forEach(r=>cnt[r]=0);open.forEach(e=>{cnt[e.y]=(cnt[e.y]||0)+1;});
+  const mx=Math.max(1,...REASONS.map(r=>cnt[r]));
+  const byCh={};open.forEach(e=>{byCh[e.c]=(byCh[e.c]||0)+1;});
+  const top=Object.keys(byCh).filter(k=>BY[k]).sort((a,b)=>byCh[b]-byCh[a]).slice(0,5);
+  let insight='';
+  if(open.length){
+    const topR=REASONS.slice().sort((a,b)=>cnt[b]-cnt[a])[0];
+    const fix={'Concept gap':'Go back to the lecture notes for the leaking chapter, then redo 10 basic questions before any new PYQs.','Silly mistake':'Slow down on the last 20 seconds of each question. Re-read what is asked and check signs and units.','Time pressure':'Switch to timed sets of 15 questions in 30 minutes. Skip a question after 2 minutes.','Never studied it':'The plan has a hole. Open the chapter map and finish that branch.'}[topR];
+    insight='<div class="insight">Most of your open errors are <b>'+topR+'</b> ('+cnt[topR]+' of '+open.length+'). '+fix+(top.length?' Biggest leak: <b>'+esc(BY[top[0]].name)+'</b>.':'')+'</div>';
+  }
+  const opts=['M','P','C'].map(s=>'<optgroup label="'+SUBS[s].n+'">'+PLAN.filter(c=>c.sub===s).map(c=>'<option value="'+c.id+'">'+esc(c.name)+'</option>').join('')+'</optgroup>').join('');
+  const items=list.length?list.map(e=>'<div class="erow'+(e.r?' done':'')+'"><button class="check" style="width:auto;padding:8px" data-act="err-res" data-id="'+e.id+'" aria-label="Mark '+(e.r?'open':'resolved')+'"><span class="box">'+(e.r?'&#10003;':'')+'</span></button><div><div class="q">'+esc(BY[e.c]?BY[e.c].name:'Unknown chapter')+'</div><div class="m">'+esc(e.y)+' · '+fmt(new Date(e.d+'T00:00:00'))+(e.n?' · '+esc(e.n):'')+'</div></div><button class="btn sm danger" data-act="err-del" data-id="'+e.id+'">'+(ui.confirm===e.id?'Sure?':'Delete')+'</button></div>').join(''):'<div class="empty"><b>'+(ui.errFilter==='open'?'No open errors':'Vault is empty')+'</b>Every question you get wrong goes here with its reason. This is where marks come from.</div>';
+  return '<div class="stack"><section class="card"><h2>Error vault</h2><p class="note">Log each wrong question right after you solve a set. Tick it when you can solve it cold.</p>'
+    +'<div class="form"><label class="f">Chapter<select id="er-ch">'+opts+'</select></label><label class="f">Why you missed it<select id="er-why">'+REASONS.map(r=>'<option>'+r+'</option>').join('')+'</select></label><label class="f full">Note<input type="text" id="er-n" maxlength="200" placeholder="Which question, what to remember"></label></div><div><button class="btn primary" data-act="err-add">Add to vault</button></div></section>'
+    +(open.length?'<section class="card"><h2>Where you leak marks</h2><div class="rbars">'+REASONS.map(r=>'<div class="rb"><span>'+r+'</span><i><b style="width:'+cnt[r]/mx*100+'%"></b></i><em>'+cnt[r]+'</em></div>').join('')+'</div>'+insight+(top.length?'<div class="row">'+top.map(k=>'<span class="chip '+SUBS[BY[k].sub].cls+'">'+esc(BY[k].name)+' · '+byCh[k]+'</span>').join('')+'</div>':'')+'</section>':'')
+    +'<section class="card"><div class="toolbar"><h2>Questions</h2><div class="seg" role="group" aria-label="Filter"><button data-act="err-filter" data-v="open" aria-pressed="'+(ui.errFilter==='open')+'">Open ('+open.length+')</button><button data-act="err-filter" data-v="all" aria-pressed="'+(ui.errFilter==='all')+'">All ('+all.length+')</button></div></div><div class="list">'+items+'</div></section></div>';
+}
+
+/* ---------- render + events ---------- */
+const TABS=[['hq','HQ'],['tree','Chapter map'],['log','Log'],['mocks','Mocks'],['errs','Error vault']];
+function renderAll(){
+  document.getElementById('tabs').innerHTML=TABS.map(t=>'<button class="tab" role="tab" data-act="tab" data-v="'+t[0]+'" aria-selected="'+(ui.tab===t[0])+'">'+t[1]+'</button>').join('');
+  const v=document.getElementById('view');
+  v.innerHTML=ui.tab==='tree'?renderTree():ui.tab==='log'?renderLog():ui.tab==='mocks'?renderMocks():ui.tab==='errs'?renderErrors():renderHQ();
+  renderSheet();paintSync();
+}
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+function act(a,b){
+  const id=b.dataset.id,v=b.dataset.v;
+  if(a==='tab'){ui.tab=v;ui.confirm=null;try{localStorage.setItem('nw.tab',v);}catch(e){}renderAll();window.scrollTo(0,0);return;}
+  if(a==='status'){setS(id,+v);persist();renderAll();return;}
+  if(a==='task'){const k=ymd(today());st.tasks[k]=st.tasks[k]||{};const on=!st.tasks[k][b.dataset.k];st.tasks[k][b.dataset.k]=on;
+    const nx=nextChapter();if(on&&nx){if(b.dataset.k==='lec')setS(nx.id,Math.max(S(nx.id),1));if(b.dataset.k==='prac')setS(nx.id,Math.max(S(nx.id),2));}
+    persist();renderAll();return;}
+  if(a==='sel'){ui.sel=ui.sel===id&&ui.tab==='tree'&&ui.view==='tree'&&false?null:id;ui.tab='tree';renderAll();return;}
+  if(a==='goto'){ui.tab='tree';ui.sel=id;ui.view='tree';try{localStorage.setItem('nw.tab','tree');}catch(e){}renderAll();const n=document.querySelector('.node.sel');if(n)n.scrollIntoView({block:'center',inline:'center'});return;}
+  if(a==='clear'){ui.sel=null;renderAll();return;}
+  if(a==='view'){ui.view=v;renderAll();return;}
+  if(a==='mock-add'){
+    const g=i=>document.getElementById(i),p=g('mk-p').value,c=g('mk-c').value,m=g('mk-m').value;
+    if(p===''||c===''||m==='')return;
+    const P=num(p),C=num(c),M=num(m);st.mocks.push({id:uid(),d:g('mk-date').value||ymd(today()),p:P,c:C,m:M,t:P+C+M,n:g('mk-n').value.trim()});persist();renderAll();return;}
+  if(a==='mock-del'){if(ui.confirm!==id){ui.confirm=id;renderAll();return;}st.mocks=st.mocks.filter(x=>x.id!==id);ui.confirm=null;persist();renderAll();return;}
+  if(a==='err-add'){const g=i=>document.getElementById(i);st.errs.push({id:uid(),c:g('er-ch').value,y:g('er-why').value,n:g('er-n').value.trim(),d:ymd(today()),r:false});persist();renderAll();return;}
+  if(a==='err-res'){const e=st.errs.find(x=>x.id===id);if(e){e.r=!e.r;persist();renderAll();}return;}
+  if(a==='err-del'){if(ui.confirm!==id){ui.confirm=id;renderAll();return;}st.errs=st.errs.filter(x=>x.id!==id);ui.confirm=null;persist();renderAll();return;}
+  if(a==='err-filter'){ui.errFilter=v;renderAll();return;}
+}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(b)act(b.dataset.act,b);});
+document.addEventListener('change',e=>{
+  const t=e.target;
+  if(t.id==='lg-date'){ui.logDate=t.value||null;renderAll();return;}
+  if(t.dataset&&t.dataset.lg){
+    const k=ui.logDate||ymd(today());st.log[k]=st.log[k]||{};const f=t.dataset.lg;
+    if(f==='note')st.log[k].note=t.value;else if(t.value==='')delete st.log[k][f];else st.log[k][f]=num(t.value);
+    persist();const h=document.getElementById('loghist');if(h)h.innerHTML=histHTML();
+  }
+});
+renderAll();
+initSync();
+})();
+</script>
+
+</body></html>
